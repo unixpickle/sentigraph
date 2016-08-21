@@ -66,7 +66,7 @@ func main() {
 
 	model.Train(samples)
 
-	data, err := model.Serialize()
+	data, err := serializer.SerializeWithType(model)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to serialize model:", err)
 		os.Exit(1)
