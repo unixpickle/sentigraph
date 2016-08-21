@@ -27,4 +27,10 @@ var Models = map[string]func() Model{
 	"forestBigraph": func() Model {
 		return &Forest{Bigraph: true}
 	},
+	"bayes": func() Model {
+		return &Bayes{}
+	},
+	"bayesBigraph": func() Model {
+		return &Bayes{Bigraph: true}
+	},
 }

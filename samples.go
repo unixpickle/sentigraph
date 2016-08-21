@@ -11,6 +11,8 @@ import (
 // statement or idea.
 type Sentiment int
 
+var AllSentiments = []Sentiment{Neutral, Negative, Positive}
+
 const (
 	Neutral Sentiment = iota
 	Negative
