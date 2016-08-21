@@ -58,7 +58,7 @@ func printStatuses(statusChan <-chan bool) {
 		if status {
 			correct++
 		}
-		fmt.Printf("\rGot %d/%d (%.2f%%)     \n", correct, total,
+		fmt.Printf("\rGot %d/%d (%.2f%%)     ", correct, total,
 			float64(correct)/float64(total)*100)
 	}
 	fmt.Println("")
