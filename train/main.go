@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"sort"
 
@@ -43,6 +44,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Invalid model type: %T\n", modelObj)
 			os.Exit(1)
 		}
+		log.Println("Loaded existing model from file.")
 	} else {
 		constructor, ok := sentigraph.Models[os.Args[ModelArg]]
 		if !ok {
