@@ -3,13 +3,21 @@ package sentigraph
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/unixpickle/serializer"
 	"github.com/unixpickle/weakai/idtrees"
 )
+
+// ForestSampleCountEnvVar is an environment variable
+// which specifies the number of samples to use for
+// generating each tree.
+const ForestSampleCountEnvVar = "FOREST_SAMPLE_COUNT"
 
 func init() {
 	var f Forest
@@ -96,7 +104,17 @@ func (f *Forest) Train(data []*Sample) {
 		attrs = append(attrs, feature)
 	}
 
-	f.Forest = idtrees.BuildForest(ForestSize, samples, attrs, len(samples)/2, 0,
+	subsampleCount := len(samples) / 2
+
+	if countStr := os.Getenv(ForestSampleCountEnvVar); countStr != "" {
+		var err error
+		subsampleCount, err = strconv.Atoi(countStr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid %s: %s", ForestSampleCountEnvVar, countStr)
+		}
+	}
+
+	f.Forest = idtrees.BuildForest(ForestSize, samples, attrs, subsampleCount, 0,
 		func(s []idtrees.Sample, attrs []idtrees.Attr) *idtrees.Tree {
 			return idtrees.ID3(s, attrs, runtime.GOMAXPROCS(0))
 		})
