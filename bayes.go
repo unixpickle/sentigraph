@@ -51,10 +51,10 @@ func DeserializeBayes(d []byte) (*Bayes, error) {
 func (b *Bayes) Classify(text string) Sentiment {
 	features := b.features(text)
 
-	var bestLogProb float64
+	bestLogProb := math.Inf(-1)
 	var bestSentiment Sentiment
 
-	for i, sentiment := range AllSentiments {
+	for _, sentiment := range AllSentiments {
 		var logProb float64
 		sentProb := b.Sentiments[sentiment]
 		if sentProb == 0 {
@@ -71,7 +71,7 @@ func (b *Bayes) Classify(text string) Sentiment {
 			}
 			logProb += math.Log(prob)
 		}
-		if logProb > bestLogProb || i == 0 {
+		if logProb > bestLogProb {
 			bestLogProb = logProb
 			bestSentiment = sentiment
 		}
@@ -101,10 +101,10 @@ func (b *Bayes) Train(s []*Sample) {
 	}
 
 	log.Println("Normalizing features...")
-	for _, sent := range AllSentiments {
+	for sent, count := range b.Sentiments {
 		conditional := b.Conditional[sent]
-		for feature, count := range b.Features {
-			conditional[feature] /= float64(count)
+		for feature := range conditional {
+			conditional[feature] /= count
 		}
 	}
 	for sent, count := range b.Sentiments {
