@@ -12,9 +12,9 @@ import (
 type Sentiment int
 
 const (
-	Positive Sentiment = iota
-	Neutral
+	Neutral Sentiment = iota
 	Negative
+	Positive
 )
 
 // Sample is a single textual training or testing sample.
