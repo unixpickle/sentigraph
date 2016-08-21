@@ -9,6 +9,15 @@ import (
 	"github.com/unixpickle/serializer"
 )
 
+// BayesSmoothing is the number of each feature to add to
+// all sentiments in order to "smooth" zero probabilities.
+// A value of 1 is specifically called "add-1" smoothing.
+const BayesSmoothing = 1
+
+// BayesMinFeatureCount is the minimum number of times a
+// feature must appear in order to be used.
+const BayesMinFeatureCount = 2
+
 func init() {
 	var b Bayes
 	serializer.RegisterTypedDeserializer(b.SerializerType(), DeserializeBayes)
@@ -18,11 +27,6 @@ type Bayes struct {
 	// Bigraph should be set to true if bigraphs are to
 	// be used in addition to unigraphs.
 	Bigraph bool
-
-	// MinimumProb is the minimum conditional probability
-	// that a feature can be given (i.e. the probability
-	// of a feature which does not occur).
-	MinimumProb float64
 
 	// Sentiments stores the unconditional probabilities of
 	// each possible sentiment.
@@ -66,9 +70,6 @@ func (b *Bayes) Classify(text string) Sentiment {
 				continue
 			}
 			prob := conditional[feature] * sentProb / b.Features[feature]
-			if prob == 0 {
-				prob = b.MinimumProb
-			}
 			logProb += math.Log(prob)
 		}
 		if logProb > bestLogProb {
@@ -83,7 +84,6 @@ func (b *Bayes) Classify(text string) Sentiment {
 // Train regenerates the Bayes classifier using the
 // given list of samples.
 func (b *Bayes) Train(s []*Sample) {
-	b.MinimumProb = 1 / float64(len(s))
 	b.Sentiments = map[Sentiment]float64{}
 	b.Features = map[string]float64{}
 	b.Conditional = map[Sentiment]map[string]float64{}
@@ -95,12 +95,28 @@ func (b *Bayes) Train(s []*Sample) {
 	for _, sample := range s {
 		b.Sentiments[sample.Sentiment]++
 		for _, feature := range b.features(sample.Contents) {
+			if _, ok := b.Features[feature]; !ok {
+				b.Features[feature] = BayesSmoothing
+				for _, m := range b.Conditional {
+					m[feature] = BayesSmoothing
+				}
+			}
 			b.Features[feature]++
 			b.Conditional[sample.Sentiment][feature]++
 		}
 	}
 
-	log.Println("Normalizing features...")
+	log.Println("Pruning features...")
+	for feature, count := range b.Features {
+		if int(count-BayesSmoothing+0.5) < BayesMinFeatureCount {
+			delete(b.Features, feature)
+			for _, m := range b.Conditional {
+				delete(m, feature)
+			}
+		}
+	}
+
+	log.Println("Normalizing", len(b.Features), "features...")
 	for sent, count := range b.Sentiments {
 		conditional := b.Conditional[sent]
 		for feature := range conditional {
