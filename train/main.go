@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 
 	"github.com/unixpickle/sentigraph"
 	"github.com/unixpickle/serializer"
@@ -20,7 +21,7 @@ func main() {
 	if len(os.Args) != 4 {
 		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0], "model_name model_path data.csv")
 		fmt.Fprintln(os.Stderr, "\nAvailable models:")
-		for model := range sentigraph.Models {
+		for _, model := range modelNames() {
 			fmt.Fprintln(os.Stderr, " -", model)
 		}
 		fmt.Fprintln(os.Stderr)
@@ -74,4 +75,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Failed to write model file:", err)
 		os.Exit(1)
 	}
+}
+
+func modelNames() []string {
+	var res []string
+	for model := range sentigraph.Models {
+		res = append(res, model)
+	}
+	sort.Strings(res)
+	return res
 }
