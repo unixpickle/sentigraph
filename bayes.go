@@ -11,7 +11,7 @@ import (
 
 // BayesSmoothing is the number of each feature to add to
 // all sentiments in order to "smooth" zero probabilities.
-// A value of 1 is specifically called "add-1" smoothing.
+// A value of 1 is specifically called Laplace smoothing.
 const BayesSmoothing = 1
 
 // BayesMinFeatureCount is the minimum number of times a
@@ -65,12 +65,12 @@ func (b *Bayes) Classify(text string) Sentiment {
 			continue
 		}
 		conditional := b.Conditional[sentiment]
-		for _, feature := range features {
+		for feature, count := range features {
 			if b.Features[feature] == 0 {
 				continue
 			}
 			prob := conditional[feature] * sentProb / b.Features[feature]
-			logProb += math.Log(prob)
+			logProb += float64(count) * math.Log(prob)
 		}
 		if logProb > bestLogProb {
 			bestLogProb = logProb
@@ -93,16 +93,17 @@ func (b *Bayes) Train(s []*Sample) {
 
 	log.Println("Counting features...")
 	for _, sample := range s {
-		b.Sentiments[sample.Sentiment]++
-		for _, feature := range b.features(sample.Contents) {
+		for feature, countInt := range b.features(sample.Contents) {
+			count := float64(countInt)
+			b.Sentiments[sample.Sentiment] += count
 			if _, ok := b.Features[feature]; !ok {
 				b.Features[feature] = BayesSmoothing
 				for _, m := range b.Conditional {
 					m[feature] = BayesSmoothing
 				}
 			}
-			b.Features[feature]++
-			b.Conditional[sample.Sentiment][feature]++
+			b.Features[feature] += count
+			b.Conditional[sample.Sentiment][feature] += count
 		}
 	}
 
@@ -142,18 +143,14 @@ func (b *Bayes) Serialize() ([]byte, error) {
 	return json.Marshal(b)
 }
 
-func (b *Bayes) features(text string) []string {
-	fields := strings.Fields(Normalize(text))
-	featureSet := map[string]bool{}
+func (b *Bayes) features(text string) map[string]int {
+	fields := strings.Fields(SeparatePunctuation(Normalize(text)))
+	res := map[string]int{}
 	for i, f := range fields {
-		featureSet[f] = true
+		res[f]++
 		if i > 0 && b.Bigraph {
-			featureSet[fields[i-1]+" "+f] = true
+			res[fields[i-1]+" "+f]++
 		}
 	}
-	slice := make([]string, 0, len(featureSet))
-	for f := range featureSet {
-		slice = append(slice, f)
-	}
-	return slice
+	return res
 }

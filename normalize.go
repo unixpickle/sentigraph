@@ -10,13 +10,55 @@ func Normalize(text string) string {
 	var newFields []string
 	for _, word := range words {
 		if strings.HasPrefix(word, "@") {
-			continue
+			newFields = append(newFields, "USERNAME")
+		} else if strings.HasPrefix(word, "http://") ||
+			strings.HasPrefix(word, "https://") {
+			newFields = append(newFields, "URL")
+		} else {
+			word = strings.ToLower(word)
+			word = removeRepeatedLetters(word)
+			newFields = append(newFields, word)
 		}
-		word = strings.ToLower(word)
-		word = removeRepeatedLetters(word)
-		newFields = append(newFields, word)
 	}
 	return strings.Join(newFields, " ")
+}
+
+// SeparatePunctuation adds spaces around clusters of
+// punctuation.
+func SeparatePunctuation(text string) string {
+	var res []string
+	for _, f := range strings.Fields(text) {
+		res = append(res, separatePunctuationWord(f)...)
+	}
+	return strings.Join(res, " ")
+}
+
+// separatePunctuationWord separates punctuation in a
+// single word/field.
+func separatePunctuationWord(word string) []string {
+	punct := map[rune]bool{'!': true, '.': true, ',': true, '?': true}
+
+	var words []string
+	var cur string
+	var last rune
+
+	for _, ch := range word {
+		if len(cur) == 0 {
+			last = ch
+			cur = string(ch)
+			continue
+		}
+		p := punct[ch]
+		if p != punct[last] {
+			words = append(words, cur)
+			cur = string(ch)
+		} else {
+			cur += string(ch)
+		}
+		last = ch
+	}
+	words = append(words, cur)
+	return words
 }
 
 // removeRepeatedLetters removes occurrences of letters so
