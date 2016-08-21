@@ -17,3 +17,14 @@ type Model interface {
 	// with the command-line user.
 	Train(samples []*Sample)
 }
+
+// Models maps model names to functions which construct
+// new instances of those models.
+var Models = map[string]func() Model{
+	"forest": func() Model {
+		return &Forest{}
+	},
+	"forestBigraph": func() Model {
+		return &Forest{Bigraph: true}
+	},
+}

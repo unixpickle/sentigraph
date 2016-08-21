@@ -3,6 +3,7 @@ package sentigraph
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"runtime"
 	"strings"
 
@@ -77,6 +78,7 @@ func (f *Forest) Classify(text string) Sentiment {
 
 // Train generates a forest for the training data.
 func (f *Forest) Train(data []*Sample) {
+	log.Println("Creating samples...")
 	samples := make([]idtrees.Sample, len(data))
 	features := map[string]bool{}
 	for i, d := range data {
@@ -86,6 +88,8 @@ func (f *Forest) Train(data []*Sample) {
 			features[feature] = true
 		}
 	}
+
+	log.Println("Created", len(samples), "samples with", len(features), "features")
 
 	attrs := make([]idtrees.Attr, 0, len(features))
 	for feature := range features {
