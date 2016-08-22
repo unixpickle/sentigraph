@@ -64,13 +64,15 @@ func (b *Bayes) Classify(text string) Sentiment {
 		if sentProb == 0 {
 			continue
 		}
-		conditional := b.Conditional[sentiment]
-		for feature, count := range features {
-			if b.Features[feature] == 0 {
-				continue
+		for feature, condProb := range b.Conditional[sentiment] {
+			var prob float64
+			if features[feature] {
+				prob = condProb / b.Features[feature]
+			} else {
+				prob = (1 - condProb) / (1 - b.Features[feature])
 			}
-			prob := conditional[feature] * sentProb / b.Features[feature]
-			logProb += float64(count) * math.Log(prob)
+			prob *= sentProb
+			logProb += math.Log(prob)
 		}
 		if logProb > bestLogProb {
 			bestLogProb = logProb
@@ -93,17 +95,16 @@ func (b *Bayes) Train(s []*Sample) {
 
 	log.Println("Counting features...")
 	for _, sample := range s {
-		for feature, countInt := range b.features(sample.Contents) {
-			count := float64(countInt)
-			b.Sentiments[sample.Sentiment] += count
+		b.Sentiments[sample.Sentiment]++
+		for feature := range b.features(sample.Contents) {
 			if _, ok := b.Features[feature]; !ok {
 				b.Features[feature] = BayesSmoothing
 				for _, m := range b.Conditional {
 					m[feature] = BayesSmoothing
 				}
 			}
-			b.Features[feature] += count
-			b.Conditional[sample.Sentiment][feature] += count
+			b.Features[feature]++
+			b.Conditional[sample.Sentiment][feature]++
 		}
 	}
 
@@ -143,13 +144,13 @@ func (b *Bayes) Serialize() ([]byte, error) {
 	return json.Marshal(b)
 }
 
-func (b *Bayes) features(text string) map[string]int {
+func (b *Bayes) features(text string) map[string]bool {
 	fields := strings.Fields(SeparatePunctuation(Normalize(text)))
-	res := map[string]int{}
+	res := map[string]bool{}
 	for i, f := range fields {
-		res[f]++
+		res[f] = true
 		if i > 0 && b.Bigraph {
-			res[fields[i-1]+" "+f]++
+			res[fields[i-1]+" "+f] = true
 		}
 	}
 	return res
