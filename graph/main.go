@@ -30,12 +30,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0],
 			"input.csv output.png [style]")
 		fmt.Fprintln(os.Stderr, "Available styles:")
-		fmt.Fprintln(os.Stderr, " - line (default)")
-		fmt.Fprintln(os.Stderr, " - heat")
+		fmt.Fprintln(os.Stderr, " - line")
+		fmt.Fprintln(os.Stderr, " - heat (default)")
 		os.Exit(1)
 	}
 
-	style := "line"
+	style := "heat"
 	if len(os.Args) > StyleArg {
 		style = os.Args[StyleArg]
 	}
