@@ -30,8 +30,10 @@ type Sample struct {
 // The format of the CSV data is inferred automatically
 // based on some popular corpora:
 //
-// * Corpus: http://help.sentiment140.com/for-students/
-//   * Format: "0"/"2"/"4",ignored,ignored,ignored,ignored,tweet_body
+// - Corpus: http://help.sentiment140.com/for-students/
+//  - Format: "0"/"2"/"4",ignored,ignored,ignored,ignored,tweet_body
+// - Corpus: http://www.sananalytics.com/lab/twitter-sentiment/
+//  - Format: ignored,"positive"/"negative"/"neutral",ignored,ignored,tweet_body
 //
 // Other corpora may be supported in the future.
 func ReadSamples(r io.Reader) ([]*Sample, error) {
@@ -47,6 +49,8 @@ func ReadSamples(r io.Reader) ([]*Sample, error) {
 	}
 	if len(first) == 6 && (first[0] == "0" || first[0] == "2" || first[0] == "4") {
 		return read024Samples(source, first)
+	} else if len(first) == 5 && first[1] == "Sentiment" {
+		return readPosNegNeutIrrelSamples(source)
 	}
 	return nil, errors.New("unknown data format")
 }
@@ -72,5 +76,34 @@ func read024Samples(r *csv.Reader, first []string) ([]*Sample, error) {
 				i, record[0])
 		}
 	}
+	return samples, nil
+}
+
+func readPosNegNeutIrrelSamples(r *csv.Reader) ([]*Sample, error) {
+	records, err := r.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	samples := make([]*Sample, 0, len(records))
+
+RecordLoop:
+	for i, record := range records {
+		sample := &Sample{Contents: record[len(record)-1]}
+		switch record[1] {
+		case "negative":
+			sample.Sentiment = Negative
+		case "neutral":
+			sample.Sentiment = Neutral
+		case "positive":
+			sample.Sentiment = Positive
+		case "irrelevant":
+			continue RecordLoop
+		default:
+			return nil, fmt.Errorf("record %d: invalid sentiment %s",
+				i, record[0])
+		}
+		samples = append(samples, sample)
+	}
+
 	return samples, nil
 }

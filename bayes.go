@@ -59,11 +59,11 @@ func (b *Bayes) Classify(text string) Sentiment {
 	var bestSentiment Sentiment
 
 	for _, sentiment := range AllSentiments {
-		var logProb float64
 		sentProb := b.Sentiments[sentiment]
 		if sentProb == 0 {
 			continue
 		}
+		logProb := math.Log(sentProb)
 		for feature, condProb := range b.Conditional[sentiment] {
 			var prob float64
 			if features[feature] {
@@ -71,7 +71,6 @@ func (b *Bayes) Classify(text string) Sentiment {
 			} else {
 				prob = (1 - condProb) / (1 - b.Features[feature])
 			}
-			prob *= sentProb
 			logProb += math.Log(prob)
 		}
 		if logProb > bestLogProb {
