@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"image"
 	"image/png"
 	"os"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 const (
 	InputArg  = 1
 	OutputArg = 2
+	StyleArg  = 3
 )
 
 type DataPoint struct {
@@ -24,10 +26,18 @@ type DataPoint struct {
 }
 
 func main() {
-	if len(os.Args) != 3 {
+	if len(os.Args) != 3 && len(os.Args) != 4 {
 		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0],
-			"input.csv output.png")
+			"input.csv output.png [style]")
+		fmt.Fprintln(os.Stderr, "Available styles:")
+		fmt.Fprintln(os.Stderr, " - line (default)")
+		fmt.Fprintln(os.Stderr, " - heat")
 		os.Exit(1)
+	}
+
+	style := "line"
+	if len(os.Args) > StyleArg {
+		style = os.Args[StyleArg]
 	}
 
 	data := readData()
@@ -39,7 +49,17 @@ func main() {
 	}
 	defer outFile.Close()
 
-	img := graph(data)
+	var img image.Image
+	switch style {
+	case "line":
+		img = lineGraph(data)
+	case "heat":
+		img = heatGraph(data)
+	default:
+		fmt.Fprintln(os.Stderr, "Unknown style:", style)
+		os.Exit(1)
+	}
+
 	if err := png.Encode(outFile, img); err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to encode output:", err)
 		os.Exit(1)
