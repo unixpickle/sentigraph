@@ -3,13 +3,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
 
 	"github.com/unixpickle/sentigraph"
-	"github.com/unixpickle/serializer"
 )
 
 const (
@@ -65,19 +63,9 @@ func printStatuses(statusChan <-chan bool) {
 }
 
 func readModel() sentigraph.Model {
-	modelData, err := ioutil.ReadFile(os.Args[ModelArg])
+	model, err := sentigraph.ReadModel(os.Args[ModelArg])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to read model:", err)
-		os.Exit(1)
-	}
-	modelObj, err := serializer.DeserializeWithType(modelData)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to deserialize model:", err)
-		os.Exit(1)
-	}
-	model, ok := modelObj.(sentigraph.Model)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Invalid model type: %T\n", modelObj)
 		os.Exit(1)
 	}
 	return model

@@ -1,6 +1,11 @@
 package sentigraph
 
-import "github.com/unixpickle/serializer"
+import (
+	"fmt"
+	"io/ioutil"
+
+	"github.com/unixpickle/serializer"
+)
 
 // A Model learns to classify the sentiment of text.
 type Model interface {
@@ -16,6 +21,23 @@ type Model interface {
 	// Depending on the model, this may be interactive
 	// with the command-line user.
 	Train(samples []*Sample)
+}
+
+// ReadModel reads a model from a file.
+func ReadModel(path string) (Model, error) {
+	modelData, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	modelObj, err := serializer.DeserializeWithType(modelData)
+	if err != nil {
+		return nil, err
+	}
+	model, ok := modelObj.(Model)
+	if !ok {
+		return nil, fmt.Errorf("invalid model type: %T", modelObj)
+	}
+	return model, nil
 }
 
 // Models maps model names to functions which construct
