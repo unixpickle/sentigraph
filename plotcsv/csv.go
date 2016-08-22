@@ -37,3 +37,17 @@ func writeCSV(w io.Writer, points []*DataPoint) {
 		os.Exit(1)
 	}
 }
+
+type PointSorter []*DataPoint
+
+func (p PointSorter) Len() int {
+	return len(p)
+}
+
+func (p PointSorter) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p PointSorter) Less(i, j int) bool {
+	return p[i].Position < p[j].Position
+}

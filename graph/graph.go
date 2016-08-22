@@ -3,7 +3,6 @@ package main
 import (
 	"image"
 	"image/color"
-	"sort"
 
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/unixpickle/sentigraph"
@@ -12,13 +11,11 @@ import (
 const (
 	ImageWidth  = 500
 	ImageHeight = 200
-	PointCount  = 100
+	PointCount  = 70
 	LineWidth   = 2
 )
 
 func graph(points []*DataPoint) image.Image {
-	sort.Sort(PointSorter(points))
-
 	yMean := make([]float64, PointCount)
 	yCount := make([]float64, PointCount)
 	for _, point := range points {
@@ -46,7 +43,7 @@ func graph(points []*DataPoint) image.Image {
 
 	ctx.BeginPath()
 	for i, y := range yMean {
-		x := float64(i) * ImageWidth / PointCount
+		x := float64(i) * ImageWidth / (PointCount - 1)
 		if x == 0 {
 			ctx.MoveTo(0, ImageHeight/2-y*(ImageHeight/2))
 		} else {
@@ -56,18 +53,4 @@ func graph(points []*DataPoint) image.Image {
 	ctx.Stroke()
 
 	return res
-}
-
-type PointSorter []*DataPoint
-
-func (p PointSorter) Len() int {
-	return len(p)
-}
-
-func (p PointSorter) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p PointSorter) Less(i, j int) bool {
-	return p[i].Position < p[j].Position
 }

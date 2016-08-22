@@ -1,30 +1,22 @@
 // Command graph generates a sentiment graph for a
-// body of text (e.g. a book).
+// sentiment CSV file (which can be generated using
+// the plotcsv command).
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"image/png"
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"sync"
+	"strconv"
 
 	"github.com/unixpickle/sentigraph"
 )
 
 const (
-	ModelArg  = 1
-	TextArg   = 2
-	OutputArg = 3
+	InputArg  = 1
+	OutputArg = 2
 )
-
-type SentenceInfo struct {
-	Text     string
-	Position float64
-}
 
 type DataPoint struct {
 	Sentiment sentigraph.Sentiment
@@ -32,23 +24,13 @@ type DataPoint struct {
 }
 
 func main() {
-	if len(os.Args) != 4 {
+	if len(os.Args) != 3 {
 		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0],
-			"model_file text_file output.png|ouput.csv")
+			"input.csv output.png")
 		os.Exit(1)
 	}
 
-	sentences := readSentences()
-	dataPoints := classifySentences(sentences)
-
-	var points []*DataPoint
-	for point := range dataPoints {
-		points = append(points, point)
-		fmt.Printf("\rGot mood %v at position %.04f      ",
-			point.Sentiment, point.Position)
-	}
-
-	fmt.Println()
+	data := readData()
 
 	outFile, err := os.Create(os.Args[OutputArg])
 	if err != nil {
@@ -57,78 +39,58 @@ func main() {
 	}
 	defer outFile.Close()
 
-	if filepath.Ext(os.Args[OutputArg]) == ".csv" {
-		writeCSV(outFile, points)
-	} else {
-		img := graph(points)
-		if err := png.Encode(outFile, img); err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to encode output:", err)
+	img := graph(data)
+	if err := png.Encode(outFile, img); err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to encode output:", err)
+		os.Exit(1)
+	}
+}
+
+func readData() []*DataPoint {
+	inFile, err := os.Open(os.Args[InputArg])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to open input:", err)
+		os.Exit(1)
+	}
+	defer inFile.Close()
+
+	r := csv.NewReader(inFile)
+	records, err := r.ReadAll()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to read input:", err)
+		os.Exit(1)
+	}
+
+	output := make([]*DataPoint, len(records))
+	for i, record := range records {
+		if len(record) != 2 {
+			fmt.Fprintln(os.Stderr, "Invalid number of columns:", len(record))
 			os.Exit(1)
 		}
-	}
-}
-
-func readSentences() <-chan *SentenceInfo {
-	text, err := ioutil.ReadFile(os.Args[TextArg])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to read text file:", err)
-		os.Exit(1)
-	}
-
-	res := make(chan *SentenceInfo)
-
-	go func() {
-		var curSentence []string
-		fields := strings.Fields(string(text))
-		for i, word := range fields {
-			curSentence = append(curSentence, word)
-			if sentenceEnded(word) {
-				sentence := &SentenceInfo{
-					Text:     strings.Join(curSentence, " "),
-					Position: float64(i) / float64(len(fields)),
-				}
-				res <- sentence
-				curSentence = nil
-			}
+		pos, err := strconv.ParseFloat(record[0], 64)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Row %d: invalid position: %s\n",
+				i, record[0])
+			os.Exit(1)
 		}
-		close(res)
-	}()
-
-	return res
-}
-
-func classifySentences(sentences <-chan *SentenceInfo) <-chan *DataPoint {
-	model, err := sentigraph.ReadModel(os.Args[ModelArg])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to read model:", err)
-		os.Exit(1)
+		var sent sentigraph.Sentiment
+		switch record[1] {
+		case "0":
+			sent = sentigraph.Neutral
+		case "-1":
+			sent = sentigraph.Negative
+		case "1":
+			sent = sentigraph.Positive
+		default:
+			fmt.Fprintf(os.Stderr, "Row %d: invalid sentiment: %s\n",
+				i, record[1])
+			os.Exit(1)
+		}
+		output[i] = &DataPoint{
+			Sentiment: sent,
+			Position:  pos,
+		}
 	}
-	resChan := make(chan *DataPoint)
-	var wg sync.WaitGroup
-	for i := 0; i < runtime.GOMAXPROCS(0); i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for sentence := range sentences {
-				sent := model.Classify(sentence.Text)
-				resChan <- &DataPoint{
-					Sentiment: sent,
-					Position:  sentence.Position,
-				}
-			}
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(resChan)
-	}()
-	return resChan
-}
 
-func sentenceEnded(s string) bool {
-	if s == "Dr." || s == "Mr." || s == "Mrs." || s == "Ms." {
-		return false
-	}
-	return strings.HasSuffix(s, ".") || strings.HasSuffix(s, "?") ||
-		strings.HasSuffix(s, "!")
+	return output
 }
