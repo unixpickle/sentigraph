@@ -36,7 +36,8 @@ func SeparatePunctuation(text string) string {
 // separatePunctuationWord separates punctuation in a
 // single word/field.
 func separatePunctuationWord(word string) []string {
-	punct := map[rune]bool{'!': true, '.': true, ',': true, '?': true}
+	punct := map[rune]bool{'!': true, '.': true, ',': true, '?': true,
+		'"': true, '(': true, ')': true}
 
 	var words []string
 	var cur string
