@@ -29,14 +29,25 @@
   }
 
   function errorLoading(err) {
-    // TODO: show this on the DOM.
-    alert('Failed to load: ' + err);
+    var loader = document.getElementById('loader');
+    loader.textContent = 'Load failed: ' + err;
   }
 
   function classifierLoaded(classifier) {
-    // TODO: this.
-    console.log('love', classifier.classify('I really love apple!'));
-    console.log('hate', classifier.classify('I really hate apple!'));
+    document.body.className = '';
+    var rateButton = document.getElementById('rate-button');
+    var rateText = document.getElementById('rate-text');
+    var rating = document.getElementById('rating');
+    rateButton.addEventListener('click', function() {
+      var text = rateText.value;
+      var score = classifier.classify(text);
+      if (score > 0) {
+        rating.className = 'positive';
+      } else {
+        rating.className = 'negative';
+      }
+      rating.textContent = 'Score ' + score.toFixed(3);
+    });
   }
 
   function fetchData(callback) {

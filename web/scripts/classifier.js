@@ -38,7 +38,6 @@
   function normalizedKeywords(text) {
     var res = [];
     var tokens = splitText(text);
-    console.log('split', tokens);
     for (var i = 0, len = tokens.length; i < len; ++i) {
       var tok = tokens[i].toLowerCase();
       if (tok[0] === '@') {

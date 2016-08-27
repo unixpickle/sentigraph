@@ -19,7 +19,7 @@ func messageHandler(this *js.Object, dataArg []*js.Object) interface{} {
 	data := dataArg[0].Get("data").Interface().([]byte)
 	newData, err := decompressData(data)
 	if err != nil {
-		js.Global.Call("postMessage", []interface{}{nil, err})
+		js.Global.Call("postMessage", []interface{}{nil, err.Error()})
 	} else {
 		js.Global.Call("postMessage", []interface{}{js.NewArrayBuffer(newData), nil})
 	}
