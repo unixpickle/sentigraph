@@ -53,6 +53,10 @@ body.loading > #loaded-content {
   cursor: pointer;
 }
 
+#rate-button:focus {
+  outline: 0;
+}
+
 #rating {
   display: inline-block;
   background-color: white;
