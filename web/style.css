@@ -26,6 +26,7 @@ body.loading > #loaded-content {
   background-color: white;
   border-radius: 5px;
   font-size: 15px;
+  font-family: sans-serif;
   border: none;
   resize: none;
   margin: 0;
